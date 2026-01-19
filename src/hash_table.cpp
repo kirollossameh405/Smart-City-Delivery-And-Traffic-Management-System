@@ -47,6 +47,20 @@ bool HashTable<K, V>::remove(const K& key) {
 }
 
 template<typename K, typename V>
+size_t HashTable<K, V>::size() const { 
+    return num_elements; 
+}
+
+template<typename K, typename V>
+bool HashTable<K, V>::empty() const {
+    return num_elements == 0;
+}
+
+size_t get_index_int(const int& key, size_t table_size) {
+    return static_cast<size_t>(key) % table_size;
+}
+
+template<typename K, typename V>
 void HashTable<K, V>::rehash() {
     size_t new_size = table.size() * 2 + 1;
     vector<list<pair<K, V>>> new_table(new_size);

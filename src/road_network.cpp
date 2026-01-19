@@ -131,3 +131,7 @@ vector<int> RoadNetwork::topological_sort() const {
     reverse(order.begin(), order.end());
     return order;
 }
+
+const unordered_map<int, vector<Edge>>& RoadNetwork::get_adj() const {
+    return adj;
+}

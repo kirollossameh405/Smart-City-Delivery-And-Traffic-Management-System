@@ -26,7 +26,7 @@ public:
     void dfs(int node, vector<bool>& visited) const;
     vector<pair<int, int>> kruskal_mst() const;
     vector<int> topological_sort() const;
-    const unordered_map<int, vector<Edge>>& get_adj() const { return adj; }
+    const unordered_map<int, vector<Edge>>& get_adj() const;
 };
 
 #endif

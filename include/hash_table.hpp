@@ -18,9 +18,7 @@ private:
     size_t num_elements = 0;
     function<size_t(const K&)> hash_func;
 
-    size_t get_index(const K& key) const { 
-        return hash_func(key) % table.size(); 
-    }
+    size_t get_index(const K& key) const;
     void rehash();
 
 public:
@@ -30,8 +28,8 @@ public:
     void insert(const K& key, const V& value);
     optional<V> find(const K& key) const;
     bool remove(const K& key);
-    size_t size() const { return num_elements; }
-    bool empty() const { return num_elements == 0; }
+    size_t size() const;
+    bool empty() const;
 };
 
 template<> size_t HashTable<int, Location>::get_index(const int& key) const;
