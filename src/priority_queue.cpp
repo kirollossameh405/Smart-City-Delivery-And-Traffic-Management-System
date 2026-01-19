@@ -1,5 +1,6 @@
 #include "../include/priority_queue.hpp"
 #include "../include/delivery.hpp"
+#include <stdexcept>
 
 template<typename T, typename Compare>
 void PriorityQueue<T, Compare>::heapify_up(size_t idx) {

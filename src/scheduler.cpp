@@ -16,16 +16,21 @@ void Scheduler::add_delivery(Delivery del) {
 Vehicle* Scheduler::find_nearest_vehicle(double x, double y) {
     Vehicle* nearest = nullptr;
     double min_dist = numeric_limits<double>::infinity();
-    for (int i = 0; i < 100; ++i) {
-        auto v_opt = vehicle_db.find(i);
-        if (v_opt && v_opt->available) {
-            double dist = hypot(v_opt->current_pos.x - x, v_opt->current_pos.y - y);
+
+    for (size_t i = 0; i < vehicle_db.size(); ++i) {
+        for (int id = 0; id < 1000; ++id) {
+            auto opt = vehicle_db.find(id);
+            if (!opt) continue;
+            if (!opt->available) continue;
+
+            double dist = hypot(opt->current_pos.x - x, opt->current_pos.y - y);
             if (dist < min_dist) {
                 min_dist = dist;
-                nearest = &v_opt.value();
+                nearest = &opt.value();
             }
         }
     }
+
     return nearest;
 }
 

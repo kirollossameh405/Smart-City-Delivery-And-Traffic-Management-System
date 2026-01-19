@@ -6,6 +6,6 @@
 
 double distance(const Location& a, const Location& b);
 void merge_sort(std::vector<Delivery>& arr);
-std::vector<Delivery>::iterator binary_search(const std::vector<Delivery>& arr, const TimePoint& tp);
+std::vector<Delivery>::const_iterator find_delivery_by_deadline(const std::vector<Delivery>& arr, const TimePoint& tp);
 
 #endif

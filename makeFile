@@ -1,53 +1,13 @@
-# Makefile - Smart City Delivery System
-
 CXX = g++
-CXXFLAGS_BASE = -std=c++17 -Wall -Wextra
+CXXFLAGS = -std=c++17 -Wall -Iinclude
 
-# Debug build (default)
-CXXFLAGS = $(CXXFLAGS_BASE) -g -O0
+SRCS = src/delivery.cpp src/file_io.cpp src/hash_table.cpp src/main.cpp src/priority_queue.cpp src/quadtree.cpp src/road_network.cpp src/route_optimizer.cpp src/scheduler.cpp src/utils.cpp
+OBJS = $(SRCS:.cpp=.o)
 
-# Uncomment for release build
-# CXXFLAGS = $(CXXFLAGS_BASE) -O2 -DNDEBUG
+EXEC = smart_city
 
-LDFLAGS =
+build: $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(EXEC) $(OBJS)
 
-TARGET = smart_city
-SOURCES = main.cpp road_network.cpp hash_table.cpp quadtree.cpp \
-          priority_queue.cpp file_io.cpp route_optimizer.cpp \
-          scheduler.cpp utils.cpp
-
-OBJECTS = $(SOURCES:.cpp=.o)
-DEPENDS = $(SOURCES:.cpp=.d)
-
-.PHONY: all clean debug release run
-
-all: $(TARGET)
-
-debug:
-	$(MAKE) clean
-	$(MAKE) CXXFLAGS="$(CXXFLAGS_BASE) -g -O0"
-
-release:
-	$(MAKE) clean
-	$(MAKE) CXXFLAGS="$(CXXFLAGS_BASE) -O2 -DNDEBUG"
-
-$(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
-
-# Include dependency files
--include $(DEPENDS)
-
-# Generate dependencies
-%.d: %.cpp
-	$(CXX) $(CXXFLAGS) -MM -MT '$(@:.d=.o)' $< -MF $@
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-clean:
-	rm -f $(OBJECTS) $(DEPENDS) $(TARGET)
-
-run: $(TARGET)
-	./$(TARGET)
-
-rebuild: clean all
+run: build
+	./$(EXEC)

@@ -3,6 +3,7 @@
 
 #include "types.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <queue>
 #include <limits>
@@ -22,7 +23,7 @@ public:
     bool remove_edge(int from, int to);
     vector<int> dijkstra(int start, int goal) const;
     vector<double> bellman_ford(int start) const;
-    void bfs(int start, vector<bool>& visited) const;
+    void bfs(int start, unordered_set<int>& visited) const;
     void dfs(int node, vector<bool>& visited) const;
     vector<pair<int, int>> kruskal_mst() const;
     vector<int> topological_sort() const;

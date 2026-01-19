@@ -4,29 +4,46 @@
 
 vector<int> greedy_route(const RoadNetwork& graph, int start, const vector<int>& destinations) {
     vector<int> remaining = destinations;
-    vector<int> path {start};
+    vector<int> path{start};
     int current = start;
+
     while (!remaining.empty()) {
-        double min_dist = numeric_limits<double>::infinity();
+        double min_cost = numeric_limits<double>::infinity();
         int next = -1;
-        auto it = remaining.begin();
-        for (auto jt = remaining.begin(); jt != remaining.end(); ++jt) {
-            auto p = graph.dijkstra(current, *jt);
-            if (!p.empty()) {
-                double cost = 0.0;
-                
-                if (p.size() - 1 < min_dist) {
-                    min_dist = p.size() - 1;
-                    next = *jt;
-                    it = jt;
+        auto best_it = remaining.end();
+
+        for (auto it = remaining.begin(); it != remaining.end(); ++it) {
+            auto subpath = graph.dijkstra(current, *it);
+            if (subpath.empty()) continue;
+
+            double cost = 0.0;
+            for (size_t k = 0; k < subpath.size() - 1; ++k) {
+                int u = subpath[k];
+                int v = subpath[k + 1];
+                auto adj_it = graph.get_adj().find(u);
+                if (adj_it == graph.get_adj().end()) continue;
+                for (const auto& e : adj_it->second) {
+                    if (e.to == v) {
+                        cost += e.weight;
+                        break;
+                    }
                 }
             }
+
+            if (cost < min_cost) {
+                min_cost = cost;
+                next = *it;
+                best_it = it;
+            }
         }
+
         if (next == -1) break;
+
         path.push_back(next);
-        remaining.erase(it);
+        remaining.erase(best_it);
         current = next;
     }
+
     return path;
 }
 

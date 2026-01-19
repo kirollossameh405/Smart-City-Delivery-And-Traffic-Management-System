@@ -1,4 +1,5 @@
 #include "../include/hash_table.hpp"
+#include <utility>
 
 template<typename K, typename V>
 HashTable<K, V>::HashTable() : table(DEFAULT_SIZE), hash_func([](const K& k){ return hash<K>{}(k); }) {}
@@ -56,8 +57,9 @@ bool HashTable<K, V>::empty() const {
     return num_elements == 0;
 }
 
-size_t get_index_int(const int& key, size_t table_size) {
-    return static_cast<size_t>(key) % table_size;
+template<typename K, typename V>
+size_t HashTable<K, V>::get_index(const K& key) const {
+    return hash_func(key) % table.size();
 }
 
 template<typename K, typename V>
