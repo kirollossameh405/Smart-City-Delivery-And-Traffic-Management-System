@@ -22,8 +22,8 @@ public:
     void push(T item);
     T pop();
     const T& top() const;
-    bool empty() const { return heap.empty(); }
-    size_t size() const { return heap.size(); }
+    bool empty() const;
+    size_t size() const;
     void update_priority(const T& item); 
 };
 
