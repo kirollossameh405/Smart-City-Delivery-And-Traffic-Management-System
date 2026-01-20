@@ -23,6 +23,7 @@ struct Vehicle {
     Location current_pos;
     bool available = true;
     vector<int> assigned_deliveries;
+    vector<int> route;
     double current_load = 0.0;
 };
 

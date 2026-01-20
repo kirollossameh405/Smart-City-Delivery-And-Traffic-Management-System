@@ -1,0 +1,6 @@
+0 Downtown 10.0 10.0 commercial
+1 Airport 50.0 80.0 airport
+2 Hospital 30.0 20.0 hospital
+3 Warehouse 15.0 60.0 warehouse
+4 Mall 70.0 30.0 commercial
+5 Residential 80.0 70.0 residential

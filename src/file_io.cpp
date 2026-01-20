@@ -70,10 +70,13 @@ bool load_deliveries(const string& filename, vector<Delivery>& deliveries, HashT
         double weight;
         string deadline_str;
         if (iss >> id >> source >> dest >> deadline_str >> priority >> weight) {
-            tm tm = {};
-            istringstream ss(deadline_str);
+            std::tm tm{};
+            std::istringstream ss(deadline_str);
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
-            auto tp = chrono::system_clock::from_time_t(mktime(&tm));
+            if (ss.fail()) {
+                continue;
+            }
+            auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
             Delivery d = {id, source, dest, tp, priority, weight};
             deliveries.push_back(d);
             delivery_db.insert(id, d);
