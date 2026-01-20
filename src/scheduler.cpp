@@ -1,89 +1,77 @@
 #include "../include/scheduler.hpp"
 #include "../include/utils.hpp"
 #include <algorithm>
-#include <cmath>
 #include <limits>
+#include <iostream>
 
 Scheduler::Scheduler(RoadNetwork& g, HashTable<int, Location>& loc_db,
                      double minx, double miny, double maxx, double maxy)
-    : graph(g), 
+    : graph(g),
       location_db(loc_db),
       location_qt(minx, miny, maxx, maxy),
       vehicle_qt(minx, miny, maxx, maxy),
       delivery_db(101, [](int k){ return static_cast<size_t>(k); }),
-      vehicle_db(101, [](int k){ return static_cast<size_t>(k); }) {}
+      vehicle_db(101, [](int k){ return static_cast<size_t>(k); })
+{
+    pending = DeliveryPQ();
+}
 
 void Scheduler::add_delivery(Delivery del) {
     pending.push(del);
     delivery_db.insert(del.id, del);
 }
 
-void Scheduler::add_vehicle(int id, Vehicle veh) {
-    veh.id = id;
-    vehicle_db.insert(id, veh);
+void Scheduler::add_vehicle(Vehicle veh) {
+    veh.current_x = veh.current_pos.x;
+    veh.current_y = veh.current_pos.y;
+    vehicle_db.insert(veh.id, veh);
+    
+    auto veh_opt = vehicle_db.find(veh.id);
+    if (veh_opt.has_value()) {
+        vehicle_qt.insert_vehicle(&veh_opt.value());
+    }
 }
 
 void Scheduler::add_location_to_quadtree(Location* loc) {
-    location_qt.insert(loc);
+    if (loc) {
+        location_qt.insert_location(loc);
+    }
 }
 
-void Scheduler::update_vehicle_availability(int veh_id, bool available) {
+void Scheduler::update_vehicle_position(int veh_id, double new_x, double new_y) {
     auto opt = vehicle_db.find(veh_id);
     if (!opt.has_value()) return;
-    
+
     Vehicle updated = opt.value();
-    updated.available = available;
-    vehicle_db.insert(veh_id, updated);
-    
-    if (available) {
-        available_vehicles[veh_id] = nullptr;
-    } else {
-        available_vehicles.erase(veh_id);
+    updated.current_x = new_x;
+    updated.current_y = new_y;
+
+    vehicle_db.insert(veh_id, std::move(updated));
+
+    auto new_opt = vehicle_db.find(veh_id);
+    if (new_opt.has_value()) {
+        vehicle_qt.insert_vehicle(&new_opt.value());
     }
 }
 
-Vehicle* Scheduler::find_nearest_vehicle(double x, double y) {
-    double best_dist = std::numeric_limits<double>::infinity();
-    int best_id = -1;
-    
-    for (auto& [id, _] : available_vehicles) {
-        auto v_opt = vehicle_db.find(id);
-        if (!v_opt.has_value()) continue;
-        
-        const Vehicle& v = v_opt.value();
-        if (!v.available) continue;
-        
-        double dx = v.current_pos.x - x;
-        double dy = v.current_pos.y - y;
-        double dist = dx * dx + dy * dy;
-        
-        if (dist < best_dist) {
-            best_dist = dist;
-            best_id = id;
-        }
-    }
-    
-    if (best_id == -1) return nullptr;
-    
-    static Vehicle temp_vehicle;
-    auto v_opt = vehicle_db.find(best_id);
-    if (v_opt.has_value()) {
-        temp_vehicle = v_opt.value();
-        return &temp_vehicle;
-    }
-    return nullptr;
+pair<Location*, Vehicle*> Scheduler::find_nearest_vehicle(double x, double y) {
+    return vehicle_qt.find_nearest_vehicle(x, y);
 }
 
 void Scheduler::assign_delivery(int del_id, int veh_id) {
     auto del_opt = delivery_db.find(del_id);
     auto veh_opt = vehicle_db.find(veh_id);
-    
-    if (!del_opt.has_value() || !veh_opt.has_value()) return;
+
+    if (!del_opt.has_value() || !veh_opt.has_value()) {
+        return;
+    }
 
     Delivery del = del_opt.value();
     Vehicle veh = veh_opt.value();
 
-    if (veh.current_load + del.weight > veh.capacity) return;
+    if (veh.current_load + del.weight > veh.capacity) {
+        return;
+    }
 
     del.assigned_vehicle = veh_id;
     del.status = "assigned";
@@ -93,8 +81,8 @@ void Scheduler::assign_delivery(int del_id, int veh_id) {
     veh.current_load += del.weight;
 
     vector<int> destinations;
-    for (int d : veh.assigned_deliveries) {
-        auto d_opt = delivery_db.find(d);
+    for (int d_id : veh.assigned_deliveries) {
+        auto d_opt = delivery_db.find(d_id);
         if (d_opt.has_value()) {
             destinations.push_back(d_opt.value().dest_id);
         }
@@ -105,56 +93,64 @@ void Scheduler::assign_delivery(int del_id, int veh_id) {
     }
 
     veh.available = veh.assigned_deliveries.empty();
-    
-    vehicle_db.insert(veh_id, veh);
-    
-    if (!veh.available) {
-        available_vehicles.erase(veh_id);
+    vehicle_db.insert(veh_id, std::move(veh));
+
+    if (!veh.route.empty()) {
+        auto next_loc_opt = location_db.find(veh.route[0]);
+        if (next_loc_opt.has_value()) {
+            const auto& next_loc = next_loc_opt.value();
+            update_vehicle_position(veh_id, next_loc.x, next_loc.y);
+        }
     }
 }
 
 void Scheduler::process_deliveries() {
-    int max_iterations = 1000;
-    int iterations = 0;
-    
-    while (!pending.empty() && iterations < max_iterations) {
-        iterations++;
-        
+    const int MAX_ATTEMPTS = 2000;
+    int attempts = 0;
+
+    while (!pending.empty() && attempts < MAX_ATTEMPTS) {
+        attempts++;
         Delivery del = pending.pop();
+
         if (del.status != "pending") continue;
 
         auto src_opt = location_db.find(del.source_id);
         if (!src_opt.has_value()) continue;
 
-        Vehicle* v = find_nearest_vehicle(src_opt.value().x, src_opt.value().y);
-        if (v) {
-            assign_delivery(del.id, v->id);
+        auto [loc, veh] = find_nearest_vehicle(src_opt->x, src_opt->y);
+
+        if (veh && veh->current_load + del.weight <= veh->capacity) {
+            assign_delivery(del.id, veh->id);
         } else {
+            pending.push(std::move(del));
             break;
         }
     }
+
+    if (attempts >= MAX_ATTEMPTS) {
+        cerr << "Warning: Reached max attempts in process_deliveries()\n";
+    }
 }
 
-void Scheduler::update_traffic(int from, int to, double new_w) {
-    graph.update_edge_weight(from, to, new_w);
+void Scheduler::update_traffic(int from, int to, double new_weight) {
+    graph.update_edge_weight(from, to, new_weight);
 }
 
 vector<Delivery> Scheduler::sorted_deliveries() const {
-    vector<Delivery> dels;
-    
-    for (int i = 0; i < 100; ++i) {
+    vector<Delivery> result;
+    for (int i = 0; i < 10000; ++i) {
         auto opt = delivery_db.find(i);
         if (opt.has_value()) {
-            dels.push_back(opt.value());
+            result.push_back(opt.value());
         }
     }
-    
-    sort(dels.begin(), dels.end(), [](const Delivery& a, const Delivery& b) {
+
+    sort(result.begin(), result.end(), [](const Delivery& a, const Delivery& b) {
         if (a.priority != b.priority) return a.priority > b.priority;
         return a.deadline < b.deadline;
     });
-    
-    return dels;
+
+    return result;
 }
 
 HashTable<int, Vehicle>& Scheduler::get_vehicle_db() {
@@ -163,4 +159,23 @@ HashTable<int, Vehicle>& Scheduler::get_vehicle_db() {
 
 const HashTable<int, Vehicle>& Scheduler::get_vehicle_db() const {
     return vehicle_db;
+}
+
+Scheduler::Stats Scheduler::get_stats() const {
+    Stats s;
+    for (int i = 0; i < 10000; ++i) {
+        auto opt = delivery_db.find(i);
+        if (opt.has_value()) {
+            s.total_deliveries++;
+            if (opt->status == "assigned") {
+                s.assigned++;
+                s.total_load_assigned += opt->weight;
+            } else if (opt->status == "pending") {
+                s.pending++;
+            } else {
+                s.unassigned++;
+            }
+        }
+    }
+    return s;
 }

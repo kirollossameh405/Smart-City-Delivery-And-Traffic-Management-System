@@ -3,10 +3,9 @@
 
 #include <string>
 #include <vector>
-#include <utility>
 #include <chrono>
 
-using namespace std; 
+using namespace std;
 using TimePoint = chrono::system_clock::time_point;
 
 struct Location {
@@ -21,6 +20,7 @@ struct Vehicle {
     double capacity;
     double speed;
     Location current_pos;
+    double current_x, current_y;
     bool available = true;
     vector<int> assigned_deliveries;
     vector<int> route;
