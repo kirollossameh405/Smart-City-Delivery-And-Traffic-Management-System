@@ -12,20 +12,27 @@ QuadTree::QuadTree(double minx, double miny, double maxx, double maxy) {
 }
 
 void QuadTree::subdivide(QuadNode* node) {
-    if (node->children[0]) return;
+    if (node->children[0]) return;  // Already subdivided
 
-    double mid_x = (node->min_x + node->max_x) / 2;
-    double mid_y = (node->min_y + node->max_y) / 2;
+    double mid_x = (node->min_x + node->max_x) / 2.0;
+    double mid_y = (node->min_y + node->max_y) / 2.0;
+    
+    // Check if subdivision is meaningful
+    if (node->max_x - node->min_x < 0.01 || node->max_y - node->min_y < 0.01) {
+        return;  // Too small to subdivide further
+    }
 
-    node->children[0] = make_unique<QuadNode>(node->min_x, mid_y, mid_x, node->max_y);
-    node->children[1] = make_unique<QuadNode>(mid_x, mid_y, node->max_x, node->max_y);
-    node->children[2] = make_unique<QuadNode>(node->min_x, node->min_y, mid_x, mid_y);
-    node->children[3] = make_unique<QuadNode>(mid_x, node->min_y, node->max_x, mid_y);
+    node->children[0] = make_unique<QuadNode>(node->min_x, mid_y, mid_x, node->max_y);   // NW
+    node->children[1] = make_unique<QuadNode>(mid_x, mid_y, node->max_x, node->max_y);   // NE
+    node->children[2] = make_unique<QuadNode>(node->min_x, node->min_y, mid_x, mid_y);   // SW
+    node->children[3] = make_unique<QuadNode>(mid_x, node->min_y, node->max_x, mid_y);   // SE
 
-    vector<Location*> temp = std::move(node->points);
+    vector<Location*> temp = move(node->points);
     node->points.clear();
 
     for (auto* loc : temp) {
+        if (!loc) continue;  // Skip null pointers
+        
         bool placed = false;
         for (int i = 0; i < 4; ++i) {
             if (node->children[i]->contains(loc->x, loc->y)) {
@@ -35,7 +42,7 @@ void QuadTree::subdivide(QuadNode* node) {
             }
         }
         if (!placed) {
-            node->points.push_back(loc);
+            node->points.push_back(loc);  // Keep at current level if doesn't fit children
         }
     }
 }

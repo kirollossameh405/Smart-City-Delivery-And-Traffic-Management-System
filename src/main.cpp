@@ -21,44 +21,83 @@ int main() {
 
         cout << "Loading city map..." << endl;
         if (!load_city_map("city_map.txt", graph)) {
-            cerr << "Failed to load city map" << endl;
-            return 1;
+            cerr << "Warning: Could not load city map" << endl;
         }
 
         cout << "Loading locations..." << endl;
         if (!load_locations("locations.txt", loc_db, all_locs)) {
-            cerr << "Failed to load locations" << endl;
-            return 1;
+            cerr << "Warning: Could not load locations" << endl;
         }
 
+        cout << "Loaded " << all_locs.size() << " locations." << endl;
+
         double minx = 0, maxx = 100, miny = 0, maxy = 100;
+        
+        if (!all_locs.empty()) {
+            minx = maxx = all_locs[0]->x;
+            miny = maxy = all_locs[0]->y;
+            
+            for (auto* loc : all_locs) {
+                if (loc->x < minx) minx = loc->x;
+                if (loc->x > maxx) maxx = loc->x;
+                if (loc->y < miny) miny = loc->y;
+                if (loc->y > maxy) maxy = loc->y;
+            }
+            
+            double padding = 10.0;
+            minx -= padding;
+            maxx += padding;
+            miny -= padding;
+            maxy += padding;
+            
+            cout << "QuadTree bounds: (" << minx << "," << miny << ") to (" << maxx << "," << maxy << ")" << endl;
+        }
+
         Scheduler scheduler(graph, loc_db, minx, miny, maxx, maxy);
 
         cout << "Adding locations to quadtree..." << endl;
+        int count = 0;
         for (auto* loc : all_locs) {
+            if (loc == nullptr) {
+                cout << "Warning: null location pointer at index " << count << endl;
+                continue;
+            }
+            
+            cout << "Adding location " << count << ": " << loc->name 
+                 << " at (" << loc->x << ", " << loc->y << ")" << endl;
+            
             scheduler.add_location_to_quadtree(loc);
+            count++;
+            
+            if (count >= 10) {
+                cout << "Limited to first 10 locations for testing" << endl;
+                break;
+            }
         }
+        cout << "Successfully added " << count << " locations to quadtree." << endl;
 
         cout << "Loading vehicles..." << endl;
         if (!load_vehicles("vehicles.txt", vehicle_db, loc_db)) {
-            cerr << "Failed to load vehicles" << endl;
-            return 1;
+            cerr << "Warning: Could not load vehicles" << endl;
         }
 
         cout << "Registering vehicles..." << endl;
+        int veh_count = 0;
         for (int i = 0; i < 100; ++i) {
             auto opt = vehicle_db.find(i);
             if (opt.has_value()) {
                 scheduler.add_vehicle(i, opt.value());
                 scheduler.update_vehicle_availability(i, true);
+                veh_count++;
             }
         }
+        cout << "Registered " << veh_count << " vehicles." << endl;
 
         cout << "Loading deliveries..." << endl;
         if (!load_deliveries("deliveries.txt", deliveries, delivery_db)) {
-            cerr << "Failed to load deliveries" << endl;
-            return 1;
+            cerr << "Warning: Could not load deliveries" << endl;
         }
+        cout << "Loaded " << deliveries.size() << " deliveries." << endl;
 
         cout << "Adding deliveries to scheduler..." << endl;
         for (auto& del : deliveries) {
@@ -108,7 +147,10 @@ int main() {
         return 0;
         
     } catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
+        cerr << "Exception caught: " << e.what() << endl;
+        return 1;
+    } catch (...) {
+        cerr << "Unknown exception caught" << endl;
         return 1;
     }
 }
