@@ -1,0 +1,167 @@
+@startuml Smart City Delivery & Traffic Management System
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam classFontSize 12
+skinparam packageStyle rectangle
+skinparam stereotypeCBackgroundColor LightYellow
+skinparam stereotypeIBackgroundColor LightGreen
+
+title Smart City Delivery & Traffic Management System
+
+' ======================
+'   CORE DATA STRUCTURES
+' ======================
+package "Data Structures" {
+    class HashTable<K,V> {
+        +insert(key: K, value: V)
+        +find(key: K): optional<V*>
+        +remove(key: K): bool
+        +size(): size_t
+    }
+
+    class PriorityQueue<T, Compare> {
+        +push(item: T)
+        +pop(): T
+        +top(): const T&
+        +update_priority(index: size_t, new_value: T)
+    }
+
+    class QuadTree {
+        -root: unique_ptr<QuadNode>
+        +insert_location(loc: Location*)
+        +insert_vehicle(veh: Vehicle*)
+        +find_nearest_vehicle(x: double, y: double): pair<Location*, Vehicle*>
+        +query_radius(x: double, y: double, radius: double)
+    }
+
+    class QuadNode {
+        -min_x, min_y, max_x, max_y
+        -items: vector<pair<Location*, Vehicle*>>
+        -children[4]: unique_ptr<QuadNode>
+    }
+}
+
+' ======================
+'   DOMAIN ENTITIES
+' ======================
+package "Domain Entities" {
+    class Location {
+        +id: int
+        +name: string
+        +x, y: double
+        +type: string
+    }
+
+    class Vehicle {
+        +id: int
+        +capacity: double
+        +speed: double
+        +current_pos: Location
+        +current_x, current_y: double
+        +available: bool
+        +assigned_deliveries: vector<int>
+        +route: vector<int>
+        +current_load: double
+    }
+
+    class Delivery {
+        +id: int
+        +source_id: int
+        +dest_id: int
+        +deadline: TimePoint
+        +priority: int
+        +weight: double
+        +status: string
+        +assigned_vehicle: int
+    }
+
+    class Edge {
+        +to: int
+        +weight: double
+        +base_weight: double
+    }
+}
+
+' ======================
+'   MAIN SYSTEM COMPONENTS
+' ======================
+package "Core System" {
+    class RoadNetwork {
+        -adj: unordered_map<int, vector<Edge>>
+        +add_edge(from: int, to: int, weight: double)
+        +update_edge_weight(from: int, to: int, new_weight: double)
+        +dijkstra(start: int, goal: int): vector<int>
+        +bellman_ford(start: int): vector<double>
+        +kruskal_mst(): vector<pair<int,int>>
+    }
+
+    class Scheduler {
+        -graph: RoadNetwork&
+        -location_db: HashTable<int, Location>&
+        -location_qt: QuadTree
+        -vehicle_qt: QuadTree
+        -delivery_db: HashTable<int, Delivery>
+        -vehicle_db: HashTable<int, Vehicle>
+        -pending: PriorityQueue<Delivery>
+        -qt_min_x, qt_min_y, qt_max_x, qt_max_y: double
+
+        +add_delivery(del: Delivery)
+        +add_vehicle(veh: Vehicle)
+        +assign_delivery(del_id: int, veh_id: int)
+        +process_deliveries()
+        +find_nearest_vehicle(x: double, y: double): pair<Location*, Vehicle*>
+        +update_vehicle_position(veh_id: int, x: double, y: double)
+        +update_traffic(from: int, to: int, new_weight: double)
+        +get_stats(): Stats
+    }
+
+    class RouteOptimizer {
+        +greedy_route(graph: RoadNetwork, start: int, destinations: vector<int>): vector<int>
+        +route_cost(graph: RoadNetwork, path: vector<int>): double
+        +partition_deliveries(deliveries: vector<Delivery>, num_vehicles: int): vector<vector<int>>
+    }
+}
+
+' ======================
+'   RELATIONSHIPS (FIXED: no < > in labels)
+' ======================
+
+Scheduler *-- RoadNetwork
+Scheduler *-- QuadTree : location_qt
+Scheduler *-- QuadTree : vehicle_qt
+Scheduler *-- HashTable : delivery_db
+Scheduler *-- HashTable : vehicle_db
+Scheduler *-- HashTable : location_db
+Scheduler *-- PriorityQueue : pending
+
+QuadTree *-- QuadNode : root
+
+Scheduler --> RouteOptimizer : uses
+Scheduler --> Vehicle : manages
+Scheduler --> Delivery : manages
+Scheduler --> Location : references
+
+Vehicle --> Location : current_pos
+Delivery --> Vehicle : assigned_vehicle
+
+RoadNetwork --> "*" Edge : contains
+
+RouteOptimizer ..> RoadNetwork : uses
+
+' ======================
+'   NOTES
+' ======================
+note bottom of Scheduler
+    Central component that:
+    • Assigns deliveries using priority & proximity
+    • Manages vehicle positions with QuadTree
+    • Simulates movement after assignment
+    • Handles traffic updates
+end note
+
+note bottom of QuadTree
+    Spatial index for fast nearest vehicle search
+end note
+
+@enduml
