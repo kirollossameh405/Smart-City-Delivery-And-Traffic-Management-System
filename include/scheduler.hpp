@@ -16,9 +16,9 @@ private:
     DeliveryPQ pending;
     HashTable<int, Delivery> delivery_db;
     HashTable<int, Vehicle> vehicle_db;
+    RoadNetwork& graph;
     HashTable<int, Location> location_db;
     QuadTree qt;
-    RoadNetwork& graph;
 
 public:
     Scheduler(RoadNetwork& g, HashTable<int, Location>& loc_db, double minx, double miny, double maxx, double maxy);
