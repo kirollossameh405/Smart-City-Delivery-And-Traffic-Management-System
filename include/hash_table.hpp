@@ -32,7 +32,4 @@ public:
     bool empty() const;
 };
 
-template<> size_t HashTable<int, Location>::get_index(const int& key) const;
-template<> size_t HashTable<int, Vehicle>::get_index(const int& key) const;
-
 #endif

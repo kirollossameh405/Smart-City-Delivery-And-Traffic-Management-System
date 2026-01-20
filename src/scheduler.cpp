@@ -1,9 +1,8 @@
 #include "../include/scheduler.hpp"
 #include "../include/utils.hpp"
+#include "../include/route_optimizer.hpp"
 #include <algorithm>
 #include <cmath>
-
-vector<int> greedy_route(RoadNetwork& graph, int start, vector<int> destinations);
 
 Scheduler::Scheduler(RoadNetwork& g, HashTable<int, Location>& loc_db, double minx, double miny, double maxx, double maxy) 
     : qt(minx, miny, maxx, maxy), graph(g), location_db(loc_db) {}

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <limits>
 
-vector<int> greedy_route(const RoadNetwork& graph, int start, const vector<int>& destinations) {
+vector<int> greedy_route(const RoadNetwork& graph, int start, const std::vector<int>& destinations) {
     vector<int> remaining = destinations;
     vector<int> path{start};
     int current = start;

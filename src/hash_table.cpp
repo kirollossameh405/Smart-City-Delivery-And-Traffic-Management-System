@@ -58,11 +58,6 @@ bool HashTable<K, V>::empty() const {
 }
 
 template<typename K, typename V>
-size_t HashTable<K, V>::get_index(const K& key) const {
-    return hash_func(key) % table.size();
-}
-
-template<typename K, typename V>
 void HashTable<K, V>::rehash() {
     size_t new_size = table.size() * 2 + 1;
     vector<list<pair<K, V>>> new_table(new_size);
@@ -75,7 +70,21 @@ void HashTable<K, V>::rehash() {
     table = move(new_table);
 }
 
+template<typename K, typename V>
+size_t HashTable<K, V>::get_index(const K& key) const {
+    return hash_func(key) % table.size();
+}
+
+template<>
+size_t HashTable<int, Location>::get_index(const int& key) const {
+    return static_cast<size_t>(key) % table.size();
+}
+
+template<>
+size_t HashTable<int, Vehicle>::get_index(const int& key) const {
+    return static_cast<size_t>(key) % table.size();
+}
+
 template class HashTable<int, Location>;
 template class HashTable<int, Vehicle>;
 template class HashTable<int, Delivery>;
-template class HashTable<string, int>; 

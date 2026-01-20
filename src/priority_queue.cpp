@@ -1,5 +1,6 @@
 #include "../include/priority_queue.hpp"
 #include "../include/delivery.hpp"
+#include <algorithm>
 #include <stdexcept>
 
 template<typename T, typename Compare>
@@ -66,20 +67,13 @@ size_t PriorityQueue<T, Compare>::size() const {
 }
 
 template<typename T, typename Compare>
-void PriorityQueue<T, Compare>::update_priority(const T& item) {
-    for (auto& e : heap) {
-        if (e == item) {
-            break;
-        }
+void PriorityQueue<T, Compare>::update_priority(size_t index, const T& new_value) {
+    if (index >= heap.size()) {
+        throw std::out_of_range("Invalid index in update_priority");
     }
-    make_heap(heap.begin(), heap.end(), comp);
+    heap[index] = new_value;
+    heapify_up(index);
+    heapify_down(index);
 }
-
-struct DeliveryCompare {
-    bool operator()(const Delivery& a, const Delivery& b) const {
-        if (a.priority != b.priority) return a.priority > b.priority;
-        return a.deadline < b.deadline;
-    }
-};
 
 template class PriorityQueue<Delivery, DeliveryCompare>;

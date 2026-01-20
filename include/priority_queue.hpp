@@ -24,7 +24,7 @@ public:
     const T& top() const;
     bool empty() const;
     size_t size() const;
-    void update_priority(const T& item); 
+    void update_priority(size_t index, const T& new_value); 
 };
 
 #endif
