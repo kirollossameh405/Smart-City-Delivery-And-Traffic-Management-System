@@ -15,13 +15,13 @@ using namespace std;
 
 class Scheduler {
 private:
-    DeliveryPQ pending;
-    HashTable<int, Delivery> delivery_db;
-    HashTable<int, Vehicle> vehicle_db;
     RoadNetwork& graph;
     HashTable<int, Location>& location_db;
     QuadTree location_qt;
     QuadTree vehicle_qt;
+    HashTable<int, Delivery> delivery_db;
+    HashTable<int, Vehicle> vehicle_db;
+    DeliveryPQ pending;
     unordered_map<int, Vehicle*> available_vehicles;
 
 public:

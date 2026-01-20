@@ -1,13 +1,24 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Iinclude
+LDFLAGS = -Wl,--stack,16777216
 
 SRCS = src/delivery.cpp src/file_io.cpp src/hash_table.cpp src/main.cpp src/priority_queue.cpp src/quadtree.cpp src/road_network.cpp src/route_optimizer.cpp src/scheduler.cpp src/utils.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 EXEC = smart_city
 
+.PHONY: all build run clean
+
+all: build
+
 build: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(EXEC) $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(EXEC) $(OBJS)
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 run: build
 	./$(EXEC)
+
+clean:
+	rm -f $(OBJS) $(EXEC)
