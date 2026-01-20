@@ -42,14 +42,12 @@ void Scheduler::update_vehicle_position(int veh_id, double new_x, double new_y) 
     Vehicle* veh = *opt;
     veh->current_x = new_x;
     veh->current_y = new_y;
-    rebuild_vehicle_qt();  // Rebuild QuadTree with updated position
+    rebuild_vehicle_qt();
 }
 
 void Scheduler::rebuild_vehicle_qt() {
-    // Use stored bounds to recreate vehicle QuadTree
     vehicle_qt = QuadTree(qt_min_x, qt_min_y, qt_max_x, qt_max_y);
 
-    // Re-insert all vehicles (small number, so efficient enough)
     for (int i = 1; i <= 100; ++i) {
         auto opt = vehicle_db.find(i);
         if (opt) {
@@ -59,7 +57,7 @@ void Scheduler::rebuild_vehicle_qt() {
 }
 
 pair<Location*, Vehicle*> Scheduler::find_nearest_vehicle(double x, double y) {
-    rebuild_vehicle_qt(); // Ensure QuadTree reflects latest positions
+    rebuild_vehicle_qt();
     return vehicle_qt.find_nearest_vehicle(x, y);
 }
 
@@ -90,7 +88,6 @@ void Scheduler::assign_delivery(int del_id, int veh_id) {
 
     veh->available = veh->assigned_deliveries.empty();
 
-    // Simulate movement: move vehicle to the last destination in the route
     if (!veh->route.empty()) {
         int last_dest = veh->route.back();
         auto next_loc_opt = location_db.find(last_dest);
@@ -105,7 +102,7 @@ void Scheduler::assign_delivery(int del_id, int veh_id) {
 void Scheduler::process_deliveries() {
     const int MAX_ATTEMPTS = 2000;
     int attempts = 0;
-    size_t consecutive_fails = 0;          // FIXED: changed to size_t to match initial_size
+    size_t consecutive_fails = 0;
     size_t initial_size = pending.size();
 
     while (!pending.empty() && attempts < MAX_ATTEMPTS) {
@@ -130,8 +127,7 @@ void Scheduler::process_deliveries() {
             consecutive_fails++;
         }
 
-        // No more warning: both are size_t
-        if (consecutive_fails > initial_size) break; // No progress possible
+        if (consecutive_fails > initial_size) break;
     }
 }
 
