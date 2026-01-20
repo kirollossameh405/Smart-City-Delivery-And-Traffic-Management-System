@@ -13,23 +13,16 @@ using namespace std;
 
 int main() {
     try {
-        cout << "=== Smart City Delivery System ===\n\n";
-
+        cout << "=== Smart City Delivery & Traffic Management System ===\n\n";
         RoadNetwork graph;
         HashTable<int, Location> loc_db(101, [](int k){ return static_cast<size_t>(k); });
         vector<Location*> all_locs;
 
         cout << "Loading city map...\n";
-        if (!load_city_map("city_map.txt", graph)) {
-            cerr << "Warning: Could not load city map\n";
-        }
-
+        if (!load_city_map("city_map.txt", graph)) cerr << "Warning: Could not load city map\n";
         cout << "Loading locations...\n";
-        if (!load_locations("locations.txt", loc_db, all_locs)) {
-            cerr << "Warning: Could not load locations\n";
-        }
+        if (!load_locations("locations.txt", loc_db, all_locs)) cerr << "Warning: Could not load locations\n";
         cout << "Loaded " << all_locs.size() << " locations\n";
-
         double minx = 0, maxx = 100, miny = 0, maxy = 100;
         if (!all_locs.empty()) {
             minx = maxx = all_locs[0]->x;
@@ -53,17 +46,15 @@ int main() {
         }
 
         HashTable<int, Vehicle> vehicle_db(101, [](int k){ return static_cast<size_t>(k); });
+        vector<int> vehicle_ids;
         cout << "Loading vehicles...\n";
-        if (!load_vehicles("vehicles.txt", vehicle_db, loc_db)) {
-            cerr << "Warning: Could not load vehicles\n";
-        }
-
+        if (!load_vehicles("vehicles.txt", vehicle_db, loc_db, vehicle_ids)) cerr << "Warning: Could not load vehicles\n";
         cout << "Registering vehicles...\n";
         int veh_count = 0;
-        for (int i = 0; i < 1000; ++i) {
-            auto opt = vehicle_db.find(i);
-            if (opt.has_value()) {
-                scheduler.add_vehicle(opt.value());
+        for (int id : vehicle_ids) {
+            auto opt = vehicle_db.find(id);
+            if (opt) {
+                scheduler.add_vehicle(**opt);
                 veh_count++;
             }
         }
@@ -72,9 +63,7 @@ int main() {
         vector<Delivery> deliveries;
         HashTable<int, Delivery> delivery_db(101, [](int k){ return static_cast<size_t>(k); });
         cout << "Loading deliveries...\n";
-        if (!load_deliveries("deliveries.txt", deliveries, delivery_db)) {
-            cerr << "Warning: Could not load deliveries\n";
-        }
+        if (!load_deliveries("deliveries.txt", deliveries, delivery_db)) cerr << "Warning: Could not load deliveries\n";
         cout << "Loaded " << deliveries.size() << " deliveries\n";
 
         cout << "Adding deliveries to scheduler...\n";
@@ -84,18 +73,16 @@ int main() {
 
         cout << "Applying traffic updates...\n";
         load_traffic_updates("traffic_updates.txt", graph);
-
-        cout << "Processing deliveries...\n";
+        cout << "Processing all deliveries...\n";
         scheduler.process_deliveries();
 
         cout << "\n=== FINAL STATISTICS ===\n";
         auto stats = scheduler.get_stats();
-        cout << left << setw(25) << "Total deliveries:"     << stats.total_deliveries << "\n";
-        cout << setw(25) << "Assigned:"                    << stats.assigned << "\n";
-        cout << setw(25) << "Still pending:"               << stats.pending << "\n";
-        cout << setw(25) << "Unassigned:"                  << stats.unassigned << "\n";
-        cout << setw(25) << "Total load assigned:"         << fixed << setprecision(2) << stats.total_load_assigned << " units\n";
-
+        cout << left << setw(25) << "Total deliveries:" << stats.total_deliveries << "\n";
+        cout << setw(25) << "Assigned:" << stats.assigned << "\n";
+        cout << setw(25) << "Still pending:" << stats.pending << "\n";
+        cout << setw(25) << "Unassigned:" << stats.unassigned << "\n";
+        cout << setw(25) << "Total load assigned:" << fixed << setprecision(2) << stats.total_load_assigned << " units\n";
         cout << "\n=== Processed Deliveries (sorted by priority & deadline) ===\n";
         auto sorted = scheduler.sorted_deliveries();
         if (sorted.empty()) {
@@ -112,41 +99,36 @@ int main() {
         }
 
         cout << "\n=== Vehicle Status & Routes ===\n";
-        int active_vehicles = 0;
-        for (int i = 0; i < 1000; ++i) {
-            auto v_opt = scheduler.get_vehicle_db().find(i);
-            if (!v_opt.has_value()) continue;
-            const auto& v = v_opt.value();
-
-            if (v.assigned_deliveries.empty() && v.route.empty()) continue;
-
-            active_vehicles++;
-            cout << "Vehicle " << v.id
-                 << " | Load: " << fixed << setprecision(1) << v.current_load << "/" << v.capacity
-                 << " | Available: " << (v.available ? "YES" : "NO") << "\n";
-
-            if (!v.route.empty()) {
-                cout << "  Route: ";
-                for (size_t j = 0; j < v.route.size() && j < 12; ++j) {
-                    cout << v.route[j];
-                    if (j < v.route.size() - 1) cout << " ";
+        int active = 0;
+        for (int id : vehicle_ids) {
+            auto v_opt = scheduler.get_vehicle_db().find(id);
+            if (!v_opt) continue;
+            const Vehicle* v = *v_opt;
+            if (v->assigned_deliveries.empty() && v->route.empty()) continue;
+            active++;
+            cout << "Vehicle " << v->id
+                 << " | Load: " << fixed << setprecision(1) << v->current_load << "/" << v->capacity
+                 << " | Available: " << (v->available ? "YES" : "NO") << "\n";
+            cout << " Current Position: (" << v->current_x << ", " << v->current_y << ")\n";
+            if (!v->route.empty()) {
+                cout << " Route: ";
+                for (size_t j = 0; j < v->route.size() && j < 12; ++j) {
+                    cout << v->route[j];
+                    if (j < v->route.size() - 1) cout << " ";
                 }
-                if (v.route.size() > 12) cout << "...";
+                if (v->route.size() > 12) cout << "...";
                 cout << "\n";
             }
         }
-        if (active_vehicles == 0) {
-            cout << "No vehicles with assigned deliveries.\n";
-        }
-
-        cout << "\n=== End of Report ===\n";
+        if (active == 0) cout << "No vehicles with assignments.\n";
+        cout << "\n=== System finished ===\n";
         return 0;
-
+        
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
     } catch (...) {
-        cerr << "Unknown error occurred\n";
+        cerr << "Unknown error\n";
         return 1;
     }
 }

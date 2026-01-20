@@ -24,6 +24,10 @@ private:
     HashTable<int, Vehicle> vehicle_db;
     DeliveryPQ pending;
 
+    double qt_min_x, qt_min_y, qt_max_x, qt_max_y;
+
+    void rebuild_vehicle_qt();
+
 public:
     Scheduler(RoadNetwork& g, HashTable<int, Location>& loc_db,
               double minx, double miny, double maxx, double maxy);
@@ -39,7 +43,7 @@ public:
     void process_deliveries();
 
     void update_traffic(int from, int to, double new_weight);
-
+    
     vector<Delivery> sorted_deliveries() const;
     HashTable<int, Vehicle>& get_vehicle_db();
     const HashTable<int, Vehicle>& get_vehicle_db() const;

@@ -32,16 +32,16 @@ bool load_locations(const string& filename, HashTable<int, Location>& loc_db, ve
         if (iss >> id >> name >> x >> y >> type) {
             Location loc = {id, name, x, y, type};
             loc_db.insert(id, loc);
-            auto loc_opt = loc_db.find(id);
-            if (loc_opt) {
-                all_locs.push_back(&loc_opt.value());
+            auto opt = loc_db.find(id);
+            if (opt) {
+                all_locs.push_back(*opt);
             }
         }
     }
     return true;
 }
 
-bool load_vehicles(const string& filename, HashTable<int, Vehicle>& vehicle_db, HashTable<int, Location>& loc_db) {
+bool load_vehicles(const string& filename, HashTable<int, Vehicle>& vehicle_db, HashTable<int, Location>& loc_db, vector<int>& vehicle_ids) {
     ifstream file(filename);
     if (!file) return false;
     string line;
@@ -52,8 +52,9 @@ bool load_vehicles(const string& filename, HashTable<int, Vehicle>& vehicle_db, 
         if (iss >> id >> capacity >> speed >> start_loc) {
             auto loc_opt = loc_db.find(start_loc);
             if (loc_opt) {
-                Vehicle v = {id, capacity, speed, loc_opt.value()};
+                Vehicle v = {id, capacity, speed, **loc_opt};
                 vehicle_db.insert(id, v);
+                vehicle_ids.push_back(id);
             }
         }
     }
@@ -70,13 +71,10 @@ bool load_deliveries(const string& filename, vector<Delivery>& deliveries, HashT
         double weight;
         string deadline_str;
         if (iss >> id >> source >> dest >> deadline_str >> priority >> weight) {
-            std::tm tm{};
-            std::istringstream ss(deadline_str);
-            ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
-            if (ss.fail()) {
-                continue;
-            }
-            auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+            tm tm{};
+            istringstream ss(deadline_str);
+            ss >> get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+            auto tp = chrono::system_clock::from_time_t(mktime(&tm));
             Delivery d = {id, source, dest, tp, priority, weight};
             deliveries.push_back(d);
             delivery_db.insert(id, d);

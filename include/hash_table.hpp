@@ -17,16 +17,15 @@ private:
     vector<list<pair<K, V>>> table;
     size_t num_elements = 0;
     function<size_t(const K&)> hash_func;
-
     size_t get_index(const K& key) const;
     void rehash();
 
 public:
     HashTable();
     HashTable(size_t initial_size, function<size_t(const K&)> hasher);
-
-    void insert(const K& key, const V& value);
-    optional<V> find(const K& key) const;
+    void insert(const K& key, V value);
+    optional<V*> find(const K& key);
+    optional<const V*> find(const K& key) const;
     bool remove(const K& key);
     size_t size() const;
     bool empty() const;
